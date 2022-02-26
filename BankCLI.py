@@ -50,6 +50,9 @@ Enter command
             if action:
                 try:
                     action()
+                except TransactionSequenceError as err:
+                    print("New transactions must be from %s onward.\n" %(err.latest_date))
+                    break
                 except AttributeError:
                     print("This command requires that you first select an account.\n")
                     continue
@@ -59,9 +62,9 @@ Enter command
                 except TransactionLimitError:
                     print("This transaction could not be completed because the account has reached a transaction limit.\n")
                     continue
-                except TransactionSequenceError:
-                    print("New transactions must be from %s onward.\n" %(TransactionSequenceError.latest_date))
-                    continue
+
+            # else:
+            #     assert (False)
             else:
                 print("{0} is not a valid choice".format(choice))
 
@@ -105,7 +108,6 @@ Enter command
             raise AttributeError
         t = Transaction(amount, date)
 
-        print(self._selected_account)
         self._selected_account.add_transaction(t)
 
     def _open_account(self):
@@ -124,7 +126,10 @@ Enter command
     def _monthy_triggers(self):
         if not self._selected_account:
             raise AttributeError
-        self._selected_account.assess_interest_and_fees()
+        try:
+            self._selected_account.assess_interest_and_fees()
+        except TransactionSequenceError as err:
+            print
             
 
     def _list_transactions(self):
@@ -136,11 +141,11 @@ Enter command
 
 
 if __name__ == "__main__":
-    logging.basicConfig(filename='bank.log', filemode = 'w', level=logging.ERROR, format='%(asctime)s|%(levelname)s|%(name)s: %(message)s')
+    logging.basicConfig(filename='bank.log', filemode = 'w', level=logging.DEBUG, format='%(asctime)s|%(levelname)s|%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
     try:
         BankCLI().run()
     except Exception as err:
         print('Sorry! Something unexpected happened. If this problem persists please contact our support team for assistance.\n')
-        logging.exception(err)
-        exit()
+        logging.error(str(type(err).__name__) + ": " + repr(err))
+        #logging.error(err)

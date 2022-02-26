@@ -1,5 +1,7 @@
 from Transactions import Transaction
 from decimal import Decimal
+from datetime import datetime
+import calendar
 
 class OverdrawError(Exception):
     "This exception should be raised when the user tries to draw more than the account has."
@@ -37,14 +39,13 @@ class Account:
         limits_ok = self._check_limits(t)
         if not limits_ok:
             raise TransactionLimitError
-        print("balanceok", self._latest_transaction)
 
-        # if self._latest_transaction and self.latest_transaction._date > t._date:
-        #     raise TransactionSequenceError(self.latest_transaction._date)
+        if self._latest_transaction and self._latest_transaction.checkDate(t):
+            raise TransactionSequenceError(self._latest_transaction._date)
 
-        print("we're still fine here", self)
+        # print("we're still fine here", self)
         if t.is_exempt() or (balance_ok and limits_ok):
-            print("hererere")
+            # print("hererere")
             self._transactions.append(t)
             self._latest_transaction = sorted(self._transactions)[-1]
 
@@ -73,10 +74,10 @@ class Account:
         # but this is more foolproof since it's always in sync with transactions
         return sum(x for x in self._transactions)
 
-    def _interest(self):
+    def _interest(self, date):
         """Calculates interest for an account balance and adds it as a new transaction exempt from limits.
         """        
-        t = Transaction(self.get_balance() * self._interest_rate, exempt=True)
+        t = Transaction(self.get_balance() * self._interest_rate, date=date, exempt=True)
         self.add_transaction(t)
 
     def _fees(self):
@@ -86,8 +87,19 @@ class Account:
         "Trigger interest and fees calculation for this account"
         # if not self:
         #     raise AttributeError
-        self._interest()
-        self._fees()
+
+        if self._latest_transaction._exempt:
+            raise TransactionSequenceError(self._latest_transaction._date)
+
+        year = self._latest_transaction._date.year
+        month = self._latest_transaction._date.month
+        day = calendar.monthrange(date.year, date.month)[1]
+
+        newDate = self._latest_transaction._date
+        print(month)
+        date = datetime.strptime(year + "-" + month + "-" + day, "%Y-%m-%d").date()
+        self._interest(date)
+        self._fees(date)
 
 
 
@@ -143,11 +155,11 @@ class CheckingAccount(Account):
         self._balance_threshold = 100
         self._low_balance_fee = -10
 
-    def _fees(self):
+    def _fees(self, date):
         """Adds a low balance fee if balance is below a particular threshold. Fee amount and balance threshold are defined on the CheckingAccount.
         """
         if self.get_balance() < self._balance_threshold:
-            t = Transaction(self._low_balance_fee, exempt=True)
+            t = Transaction(self._low_balance_fee, date=date, exempt=True)
             self.add_transaction(t)
 
     def __str__(self):

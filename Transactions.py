@@ -61,5 +61,9 @@ class Transaction(ComparableMixin):
         return self._date < value._date
 
 
+    def checkDate(self, other):
+        return self._date > other._date
+
+
 
 
