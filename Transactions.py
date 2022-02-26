@@ -55,7 +55,7 @@ class Transaction(ComparableMixin):
         return other + self._amt
 
     def check_balance(self, balance):
-        return self._amt >= 0 or balance > abs(self._amt)
+        return self._amt >= 0 or balance >= abs(self._amt)
 
     def __lt__(self, value):
         return self._date < value._date
@@ -63,7 +63,3 @@ class Transaction(ComparableMixin):
 
     def checkDate(self, other):
         return self._date > other._date
-
-
-
-
