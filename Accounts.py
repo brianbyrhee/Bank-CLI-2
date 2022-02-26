@@ -2,6 +2,7 @@ from Transactions import Transaction
 from decimal import Decimal
 from datetime import datetime
 import calendar
+import logging
 
 class OverdrawError(Exception):
     "This exception should be raised when the user tries to draw more than the account has."
@@ -29,7 +30,6 @@ class Account:
 
     def add_transaction(self, t):
         """Checks a pending transaction to see if it is allowed and adds it to the account if it is.
-
         Args:
             t (Transaction): incoming transaction
         """
@@ -48,14 +48,14 @@ class Account:
             # print("hererere")
             self._transactions.append(t)
             self._latest_transaction = sorted(self._transactions)[-1]
+            logging.debug("Created transaction: " + str(self._account_number) + ", " + str(t._amt))
+
 
 
     def _check_balance(self, t):
         """Checks whether an incoming transaction would overdraw the account
-
         Args:
             t (Transaction): pending transaction
-
         Returns:
             bool: false if account is overdrawn
         """
@@ -66,7 +66,6 @@ class Account:
 
     def get_balance(self):
         """Gets the balance for an account by summing its transactions
-
         Returns:
             Decimal: current balance
         """
@@ -80,7 +79,7 @@ class Account:
         t = Transaction(self.get_balance() * self._interest_rate, date=date, exempt=True)
         self.add_transaction(t)
 
-    def _fees(self):
+    def _fees(self, date):
         pass
 
     def assess_interest_and_fees(self):
@@ -93,11 +92,9 @@ class Account:
 
         year = self._latest_transaction._date.year
         month = self._latest_transaction._date.month
-        day = calendar.monthrange(date.year, date.month)[1]
+        day = calendar.monthrange(self._latest_transaction._date.year, self._latest_transaction._date.month)[1]
 
-        newDate = self._latest_transaction._date
-        print(month)
-        date = datetime.strptime(year + "-" + month + "-" + day, "%Y-%m-%d").date()
+        date = datetime.strptime(str(year) + "-" + str(month) + "-" + str(day), "%Y-%m-%d").date()
         self._interest(date)
         self._fees(date)
 
@@ -126,10 +123,8 @@ class SavingsAccount(Account):
 
     def _check_limits(self, t1:Transaction) -> bool:
         """determines if the incoming trasaction is within the accounts transaction limits
-
         Args:
             t1 (Transaction): pending transaction to be checked
-
         Returns:
             bool: true if within limits and false if beyond limits
         """    
