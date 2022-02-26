@@ -24,6 +24,20 @@ class BankCLI():
             "8": self._load,
             "9": self._quit,
         }
+        self._months = {
+            1: "January",
+            2: "February",
+            3: "March",
+            4: "April",
+            5: "May",
+            6: "June",
+            7: "July",
+            8: "August",
+            9: "September",
+            10: "October",
+            11: "November",
+            12: "December"
+        }
 
 
     def _display_menu(self):
@@ -51,20 +65,18 @@ Enter command
                 try:
                     action()
                 except TransactionSequenceError as err:
-                    print("New transactions must be from %s onward.\n" %(err.latest_date))
-                    break
+                    print("New transactions must be from %s onward." %(err.latest_date))
+                    continue
                 except AttributeError:
-                    print("This command requires that you first select an account.\n")
+                    print("This command requires that you first select an account.")
                     continue
                 except OverdrawError:
-                    print("This transaction could not be completed due to an insufficient account balance.\n")
+                    print("This transaction could not be completed due to an insufficient account balance.")
                     continue
                 except TransactionLimitError:
-                    print("This transaction could not be completed because the account has reached a transaction limit.\n")
+                    print("This transaction could not be completed because the account has reached a transaction limit.")
                     continue
 
-            # else:
-            #     assert (False)
             else:
                 print("{0} is not a valid choice".format(choice))
 
@@ -77,10 +89,14 @@ Enter command
         with open("save.pickle", "rb") as f:
             self._bank = pickle.load(f)
 
+        logging.debug("Loaded from bank.pickle")
+
     def _save(self):
         
         with open("save.pickle", "wb") as f:
             pickle.dump(self._bank, f)
+
+        logging.debug("Saved to bank.pickle")
 
     def _quit(self):
         sys.exit(0)
@@ -92,7 +108,7 @@ Enter command
                 amount = Decimal(amount)
                 break
             except InvalidOperation:
-                print("Please try again with a valid dollar amount.\n")
+                print("Please try again with a valid dollar amount.")
                 continue
 
         while True:
@@ -101,7 +117,7 @@ Enter command
                 date = datetime.strptime(date, "%Y-%m-%d").date()
                 break
             except ValueError:
-                print("Please try again with a valid date in the format YYYY-MM-DD.\n")
+                print("Please try again with a valid date in the format YYYY-MM-DD.")
                 continue 
 
         if not self._selected_account:
@@ -109,7 +125,7 @@ Enter command
         t = Transaction(amount, date)
 
         self._selected_account.add_transaction(t)
-
+        
     def _open_account(self):
         acct_type = input("Type of account? (checking/savings)\n>")
         initial_deposit = input("Initial deposit amount?\n>")
@@ -117,6 +133,7 @@ Enter command
         t = Transaction(initial_deposit)
 
         a = self._bank.add_account(acct_type)
+        logging.debug("Created account: " + str(a._account_number))
         a.add_transaction(t)
         
     def _select(self):
@@ -128,8 +145,10 @@ Enter command
             raise AttributeError
         try:
             self._selected_account.assess_interest_and_fees()
+            logging.debug("Triggered fees and interest")
         except TransactionSequenceError as err:
-            print
+            month = self._months[err.latest_date.month]
+            print("Cannot apply interest and fees again in the month of %s." %(month))
             
 
     def _list_transactions(self):
@@ -146,6 +165,6 @@ if __name__ == "__main__":
     try:
         BankCLI().run()
     except Exception as err:
-        print('Sorry! Something unexpected happened. If this problem persists please contact our support team for assistance.\n')
+        print('Sorry! Something unexpected happened. If this problem persists please contact our support team for assistance.')
         logging.error(str(type(err).__name__) + ": " + repr(err))
         #logging.error(err)
